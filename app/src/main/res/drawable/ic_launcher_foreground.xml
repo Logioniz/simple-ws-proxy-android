@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Simple cloud, built as a union of overlapping circles over a rounded base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="nonZero"
+        android:pathData="M39,51 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 Z
+M32,59 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z
+M52,59 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z
+M32,59 L76,59 L76,66 A6,6 0 0,1 70,72 L38,72 A6,6 0 0,1 32,66 Z" />
+</vector>

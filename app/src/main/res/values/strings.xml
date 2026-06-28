@@ -14,6 +14,14 @@
     <string name="settings_hide_password">Hide password</string>
     <string name="settings_route_all">Route all traffic (VPN)</string>
     <string name="settings_route_all_hint">Capture all device traffic and send it through the proxy, like a VPN. Only TCP is tunneled; UDP/QUIC falls back to TCP.</string>
+    <string name="settings_routed_apps_label">Apps through proxy</string>
+    <string name="settings_routed_apps_all">All apps</string>
+    <string name="settings_routed_apps_count">%1$d selected</string>
+    <string name="settings_routed_apps_choose">Choose</string>
+    <string name="settings_routed_apps_title">Apps to route</string>
+    <string name="settings_routed_apps_search">Search</string>
+    <string name="settings_routed_apps_done">Done</string>
+    <string name="settings_routed_apps_cancel">Cancel</string>
     <string name="settings_save">Save</string>
     <string name="settings_saved">Settings saved</string>
 

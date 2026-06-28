@@ -110,7 +110,7 @@ class ProxyVpnService : VpnService() {
 
         ProxyState.setRunning(true)
         Logs.add("VPN started -> ${config.serverUrl}")
-        ProxyState.setStatus("Routing all traffic", StatusLevel.SUCCESS)
+        ProxyState.setStatus(routingSummary(), StatusLevel.SUCCESS)
 
         scope.launch(Dispatchers.IO) { vpnEngine.loop() }
         return START_STICKY
@@ -165,15 +165,39 @@ class ProxyVpnService : VpnService() {
             .addAddress(VPN_ADDRESS6, 128)
             .addRoute("::", 0)
 
-        // Exclude our own app from the VPN so the tunnel's WebSocket sockets go
-        // straight to the network instead of looping back into the TUN.
-        try {
-            builder.addDisallowedApplication(packageName)
-        } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
-            // Our own package always exists; ignore.
-        }
-
+        applyAppFilter(builder)
         return builder.establish()
+    }
+
+    /**
+     * Split tunneling. With apps selected, route only those (allow-list); our own
+     * package is never added, so the tunnel's sockets bypass the TUN. With none
+     * selected, route everything except our own package (disallow-list) to avoid
+     * the loop. Either way the tunnel never enters the VPN.
+     */
+    private fun applyAppFilter(builder: Builder) {
+        val selected = SettingsStore.settings.value.routedApps - packageName
+        if (selected.isEmpty()) {
+            runCatching { builder.addDisallowedApplication(packageName) }
+            return
+        }
+        var added = 0
+        for (pkg in selected) {
+            try {
+                builder.addAllowedApplication(pkg)
+                added++
+            } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+                Logs.add("Skipping uninstalled app: $pkg")
+            }
+        }
+        // If every selected app turned out to be uninstalled, fall back to "all".
+        if (added == 0) runCatching { builder.addDisallowedApplication(packageName) }
+    }
+
+    /** Human-readable description of what is being routed, for status/notification. */
+    private fun routingSummary(): String {
+        val selected = SettingsStore.settings.value.routedApps - packageName
+        return if (selected.isEmpty()) "Routing all traffic" else "Routing apps"
     }
 
     private fun failAndStop(message: String): Int {
@@ -202,7 +226,7 @@ class ProxyVpnService : VpnService() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("Routing all traffic through proxy")
+            .setContentText(routingSummary())
             .setSmallIcon(R.drawable.ic_play)
             .setOngoing(true)
             .setContentIntent(openIntent)

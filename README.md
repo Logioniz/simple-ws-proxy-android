@@ -19,7 +19,8 @@ background.
 With **Route all traffic** enabled, pressing Play brings up a system VPN (Android
 `VpnService`) instead of the local SOCKS5 listener: a userspace tun2socks engine
 captures the whole device's traffic and forwards every TCP flow through the same
-WebSocket tunnel, so no per-app proxy configuration is needed. Because the tunnel
+WebSocket tunnel, so no per-app proxy configuration is needed. Split tunneling is
+supported: pick specific apps to route (empty selection = all apps). Because the tunnel
 only carries TCP, DNS is translated to DNS-over-TCP and other UDP (e.g. QUIC) is
 dropped so apps fall back to TCP; IPv6 is captured and dropped to avoid leaks.
 

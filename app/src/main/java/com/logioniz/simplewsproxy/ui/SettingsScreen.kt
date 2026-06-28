@@ -52,9 +52,11 @@ fun SettingsScreen(
     var socksUser by rememberSaveable { mutableStateOf(saved.socksUser) }
     var socksPassword by rememberSaveable { mutableStateOf(saved.socksPassword) }
     var routeAllTraffic by rememberSaveable { mutableStateOf(saved.routeAllTraffic) }
+    var routedApps by remember { mutableStateOf(saved.routedApps) }
 
     var secretVisible by rememberSaveable { mutableStateOf(false) }
     var socksPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var showAppPicker by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -157,6 +159,44 @@ fun SettingsScreen(
             )
         }
 
+        if (routeAllTraffic) {
+            val appsSummary = if (routedApps.isEmpty()) {
+                stringResource(R.string.settings_routed_apps_all)
+            } else {
+                stringResource(R.string.settings_routed_apps_count, routedApps.size)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.settings_routed_apps_label))
+                    Text(
+                        text = appsSummary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Button(onClick = { showAppPicker = true }) {
+                    Text(stringResource(R.string.settings_routed_apps_choose))
+                }
+            }
+        }
+
+        if (showAppPicker) {
+            AppPickerDialog(
+                initialSelected = routedApps,
+                onConfirm = {
+                    routedApps = it
+                    showAppPicker = false
+                },
+                onDismiss = { showAppPicker = false },
+            )
+        }
+
         Button(
             onClick = {
                 SettingsStore.save(
@@ -167,6 +207,7 @@ fun SettingsScreen(
                         socksUser = socksUser,
                         socksPassword = socksPassword,
                         routeAllTraffic = routeAllTraffic,
+                        routedApps = routedApps,
                     ),
                 )
                 onSaved()

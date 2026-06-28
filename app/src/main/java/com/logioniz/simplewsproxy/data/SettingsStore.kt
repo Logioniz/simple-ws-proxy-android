@@ -15,6 +15,11 @@ data class ProxySettings(
     val socksPassword: String = "",
     /** When true, the Play button brings up a system VPN that routes all traffic. */
     val routeAllTraffic: Boolean = false,
+    /**
+     * Package names to route through the VPN (split tunneling). Empty means
+     * route every app (except this one). Only used when [routeAllTraffic] is on.
+     */
+    val routedApps: Set<String> = emptySet(),
 )
 
 /**
@@ -30,6 +35,7 @@ object SettingsStore {
     private const val KEY_USER = "socks_user"
     private const val KEY_PASSWORD = "socks_password"
     private const val KEY_ROUTE_ALL = "route_all_traffic"
+    private const val KEY_ROUTED_APPS = "routed_apps"
 
     private lateinit var prefs: SharedPreferences
 
@@ -50,6 +56,7 @@ object SettingsStore {
             .putString(KEY_USER, settings.socksUser)
             .putString(KEY_PASSWORD, settings.socksPassword)
             .putBoolean(KEY_ROUTE_ALL, settings.routeAllTraffic)
+            .putStringSet(KEY_ROUTED_APPS, settings.routedApps)
             .apply()
         _settings.value = settings
     }
@@ -61,5 +68,7 @@ object SettingsStore {
         socksUser = prefs.getString(KEY_USER, "") ?: "",
         socksPassword = prefs.getString(KEY_PASSWORD, "") ?: "",
         routeAllTraffic = prefs.getBoolean(KEY_ROUTE_ALL, false),
+        // Copy: getStringSet returns a shared instance that must not be mutated.
+        routedApps = prefs.getStringSet(KEY_ROUTED_APPS, emptySet())?.toSet() ?: emptySet(),
     )
 }

@@ -1,5 +1,6 @@
 package com.logioniz.simplewsproxy.proxy
 
+import com.logioniz.simplewsproxy.data.ProxySettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -18,7 +19,47 @@ data class ProxyConfig(
     val secretKey: String,
     val socksUser: String,
     val socksPassword: String,
-)
+) {
+    companion object {
+        /** Validate [settings] into a [ProxyConfig], or publish an error and return null. */
+        fun fromSettings(settings: ProxySettings): ProxyConfig? {
+            val serverUrl = normalizeServerUrl(settings.server)
+            val error = when {
+                serverUrl.isEmpty() -> "Set the server address in Settings"
+                settings.secretKey.isEmpty() -> "Set the secret key in Settings"
+                settings.listenPort !in 1..65535 -> "Listen port must be 1-65535"
+                else -> null
+            }
+            if (error != null) {
+                ProxyState.setStatus(error, StatusLevel.ERROR)
+                Logs.add(error)
+                return null
+            }
+            return ProxyConfig(
+                serverUrl = serverUrl,
+                listenPort = settings.listenPort,
+                secretKey = settings.secretKey,
+                socksUser = settings.socksUser,
+                socksPassword = settings.socksPassword,
+            )
+        }
+
+        /** Normalize a user-entered `host:port` (or full URL) into a `ws://` URL. */
+        fun normalizeServerUrl(raw: String): String {
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) return ""
+            return when {
+                trimmed.startsWith("ws://", ignoreCase = true) ||
+                    trimmed.startsWith("wss://", ignoreCase = true) -> trimmed
+                trimmed.startsWith("http://", ignoreCase = true) ->
+                    "ws://" + trimmed.substring("http://".length)
+                trimmed.startsWith("https://", ignoreCase = true) ->
+                    "wss://" + trimmed.substring("https://".length)
+                else -> "ws://$trimmed"
+            }
+        }
+    }
+}
 
 /**
  * Local SOCKS5 listener bound to 127.0.0.1. Each accepted connection is
@@ -77,7 +118,15 @@ class ProxyServer(private val config: ProxyConfig) {
                 return
             }
             Logs.add("CONNECT $target")
-            TunnelConnection(client, socket, config.serverUrl, authenticator, target).run()
+            TunnelConnection(
+                client = client,
+                input = socket.getInputStream(),
+                output = socket.getOutputStream(),
+                onClose = { runCatching { socket.close() } },
+                serverUrl = config.serverUrl,
+                authenticator = authenticator,
+                target = target,
+            ).run()
         } catch (e: Exception) {
             Logs.add("Connection error: ${e.message ?: e.javaClass.simpleName}")
             runCatching { socket.close() }

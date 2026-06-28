@@ -12,8 +12,12 @@
     <string name="settings_socks_password">SOCKS5 password</string>
     <string name="settings_show_password">Show password</string>
     <string name="settings_hide_password">Hide password</string>
+    <string name="settings_route_all">Route all traffic (VPN)</string>
+    <string name="settings_route_all_hint">Capture all device traffic and send it through the proxy, like a VPN. Only TCP is tunneled; UDP/QUIC falls back to TCP.</string>
     <string name="settings_save">Save</string>
     <string name="settings_saved">Settings saved</string>
+
+    <string name="vpn_consent_denied">VPN permission was denied</string>
 
     <string name="play_start">Start</string>
     <string name="play_stop">Stop</string>

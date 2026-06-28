@@ -39,6 +39,19 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Local SOCKS5 to WebSocket proxy tunnel" />
         </service>
+
+        <service
+            android:name=".proxy.vpn.ProxyVpnService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:foregroundServiceType="specialUse">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Routes all device traffic through the WebSocket proxy tunnel" />
+        </service>
     </application>
 
 </manifest>

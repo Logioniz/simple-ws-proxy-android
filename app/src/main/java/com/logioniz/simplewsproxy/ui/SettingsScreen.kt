@@ -1,17 +1,23 @@
 package com.logioniz.simplewsproxy.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +51,7 @@ fun SettingsScreen(
     var secretKey by rememberSaveable { mutableStateOf(saved.secretKey) }
     var socksUser by rememberSaveable { mutableStateOf(saved.socksUser) }
     var socksPassword by rememberSaveable { mutableStateOf(saved.socksPassword) }
+    var routeAllTraffic by rememberSaveable { mutableStateOf(saved.routeAllTraffic) }
 
     var secretVisible by rememberSaveable { mutableStateOf(false) }
     var socksPasswordVisible by rememberSaveable { mutableStateOf(false) }
@@ -129,6 +136,27 @@ fun SettingsScreen(
                 .padding(top = 12.dp),
         )
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.settings_route_all))
+                Text(
+                    text = stringResource(R.string.settings_route_all_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Switch(
+                checked = routeAllTraffic,
+                onCheckedChange = { routeAllTraffic = it },
+            )
+        }
+
         Button(
             onClick = {
                 SettingsStore.save(
@@ -138,6 +166,7 @@ fun SettingsScreen(
                         secretKey = secretKey,
                         socksUser = socksUser,
                         socksPassword = socksPassword,
+                        routeAllTraffic = routeAllTraffic,
                     ),
                 )
                 onSaved()

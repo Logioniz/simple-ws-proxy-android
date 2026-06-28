@@ -2,6 +2,7 @@ package com.logioniz.simplewsproxy
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -23,7 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
+import com.logioniz.simplewsproxy.data.SettingsStore
+import com.logioniz.simplewsproxy.proxy.Logs
 import com.logioniz.simplewsproxy.proxy.ProxyService
+import com.logioniz.simplewsproxy.proxy.ProxyState
+import com.logioniz.simplewsproxy.proxy.StatusLevel
+import com.logioniz.simplewsproxy.proxy.vpn.ProxyVpnService
 import com.logioniz.simplewsproxy.ui.LogsScreen
 import com.logioniz.simplewsproxy.ui.PlayScreen
 import com.logioniz.simplewsproxy.ui.SettingsScreen
@@ -34,18 +40,45 @@ class MainActivity : ComponentActivity() {
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
 
+    private val vpnConsent =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                ProxyVpnService.start(this)
+            } else {
+                val message = getString(R.string.vpn_consent_denied)
+                ProxyState.setStatus(message, StatusLevel.ERROR)
+                Logs.add(message)
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         maybeRequestNotificationPermission()
         enableEdgeToEdge()
         setContent {
             SimpleWSProxyTheme {
-                SimpleWSProxyApp(
-                    onToggleProxy = { start ->
-                        if (start) ProxyService.start(this) else ProxyService.stop(this)
-                    },
-                )
+                SimpleWSProxyApp(onToggleProxy = ::toggleProxy)
             }
+        }
+    }
+
+    /**
+     * Start/stop the proxy in the mode chosen in Settings. With "Route all
+     * traffic" on, this brings up the system VPN (after a consent dialog the
+     * first time); otherwise the local SOCKS5 service. Stopping shuts down
+     * whichever is running.
+     */
+    private fun toggleProxy(start: Boolean) {
+        if (!start) {
+            ProxyService.stop(this)
+            ProxyVpnService.stop(this)
+            return
+        }
+        if (SettingsStore.settings.value.routeAllTraffic) {
+            val consent = VpnService.prepare(this)
+            if (consent != null) vpnConsent.launch(consent) else ProxyVpnService.start(this)
+        } else {
+            ProxyService.start(this)
         }
     }
 

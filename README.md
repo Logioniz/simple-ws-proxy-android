@@ -8,12 +8,20 @@ The UI has three tabs:
 
 - **Play** — a single start/stop button (green for start, red for stop); status and
   errors are shown below the button;
-- **Settings** — server address `host:port`, local listen port, secret key, and SOCKS5
-  username/password (password fields can be revealed with the eye button);
+- **Settings** — server address `host:port`, local listen port, secret key, SOCKS5
+  username/password (password fields can be revealed with the eye button), and a
+  **Route all traffic (VPN)** switch;
 - **Logs** — a runtime log (last lines) that you can copy or clear.
 
 The tunnel runs in a foreground service, so it keeps working while the app is in the
 background.
+
+With **Route all traffic** enabled, pressing Play brings up a system VPN (Android
+`VpnService`) instead of the local SOCKS5 listener: a userspace tun2socks engine
+captures the whole device's traffic and forwards every TCP flow through the same
+WebSocket tunnel, so no per-app proxy configuration is needed. Because the tunnel
+only carries TCP, DNS is translated to DNS-over-TCP and other UDP (e.g. QUIC) is
+dropped so apps fall back to TCP; IPv6 is captured and dropped to avoid leaks.
 
 ## Project dependencies
 

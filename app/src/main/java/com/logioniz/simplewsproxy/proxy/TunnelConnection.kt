@@ -13,19 +13,25 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.ByteString.Companion.toByteString
-import java.net.Socket
+import java.io.InputStream
+import java.io.OutputStream
 
 /**
- * Relays a single SOCKS5 connection through a WebSocket tunnel to the
- * simple-ws-proxy server.
+ * Relays a single connection through a WebSocket tunnel to the simple-ws-proxy
+ * server. The local side is an arbitrary byte stream pair: for the SOCKS5
+ * listener it is a [java.net.Socket]'s streams, for the VPN engine it is a pair
+ * of in-memory pipe streams bridged to a userspace TCP flow.
  *
- * Direction `local -> ws` is pumped by a coroutine reading the local socket;
- * direction `ws -> local` is handled in [WebSocketListener.onMessage]. Every
- * message is XOR-encrypted with the per-session [Cipher].
+ * Direction `local -> ws` is pumped by a coroutine reading [input]; direction
+ * `ws -> local` is handled in [WebSocketListener.onMessage] and written to
+ * [output]. Every message is XOR-encrypted with the per-session [Cipher].
+ * [onClose] is invoked once when the relay finishes, to release the local side.
  */
 class TunnelConnection(
     private val client: OkHttpClient,
-    private val local: Socket,
+    private val input: InputStream,
+    private val output: OutputStream,
+    private val onClose: () -> Unit,
     private val serverUrl: String,
     private val authenticator: Authenticator,
     private val target: String,
@@ -38,9 +44,6 @@ class TunnelConnection(
         val requestBuilder = Request.Builder().url(serverUrl)
         headers.forEach { (key, value) -> requestBuilder.addHeader(key, value) }
         val request = requestBuilder.build()
-
-        val input = local.getInputStream()
-        val output = local.getOutputStream()
 
         val closed = CompletableDeferred<Unit>()
         var pump: Job? = null
@@ -94,7 +97,10 @@ class TunnelConnection(
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                Logs.add("Tunnel error $target: ${t.message ?: t.javaClass.simpleName}")
+                // A cancelled call (we tore the flow down on purpose) is not an error.
+                if (t.message != "Canceled") {
+                    Logs.add("Tunnel error $target: ${t.message ?: t.javaClass.simpleName}")
+                }
                 finish()
             }
 
@@ -109,7 +115,7 @@ class TunnelConnection(
         } finally {
             pump?.cancel()
             runCatching { webSocket.cancel() }
-            runCatching { local.close() }
+            runCatching { onClose() }
         }
     }
 

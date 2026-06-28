@@ -12,7 +12,6 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.logioniz.simplewsproxy.MainActivity
 import com.logioniz.simplewsproxy.R
-import com.logioniz.simplewsproxy.data.ProxySettings
 import com.logioniz.simplewsproxy.data.SettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,9 +42,9 @@ class ProxyService : Service() {
 
         startForeground(NOTIFICATION_ID, buildNotification())
 
-        val config = buildConfig(SettingsStore.settings.value)
+        val config = ProxyConfig.fromSettings(SettingsStore.settings.value)
         if (config == null) {
-            // Validation message already published to ProxyState by buildConfig.
+            // Validation message already published to ProxyState by fromSettings.
             stopSelf()
             return START_NOT_STICKY
         }
@@ -76,29 +75,6 @@ class ProxyService : Service() {
         }
         Logs.add("Proxy stopped")
         super.onDestroy()
-    }
-
-    /** Validate settings and build a [ProxyConfig], or publish an error and return null. */
-    private fun buildConfig(settings: ProxySettings): ProxyConfig? {
-        val serverUrl = normalizeServerUrl(settings.server)
-        when {
-            serverUrl.isEmpty() -> return fail("Set the server address in Settings")
-            settings.secretKey.isEmpty() -> return fail("Set the secret key in Settings")
-            settings.listenPort !in 1..65535 -> return fail("Listen port must be 1-65535")
-        }
-        return ProxyConfig(
-            serverUrl = serverUrl,
-            listenPort = settings.listenPort,
-            secretKey = settings.secretKey,
-            socksUser = settings.socksUser,
-            socksPassword = settings.socksPassword,
-        )
-    }
-
-    private fun fail(message: String): ProxyConfig? {
-        ProxyState.setStatus(message, StatusLevel.ERROR)
-        Logs.add(message)
-        return null
     }
 
     private fun buildNotification(): Notification {
@@ -145,21 +121,6 @@ class ProxyService : Service() {
         private const val CHANNEL_ID = "proxy_status"
         private const val NOTIFICATION_ID = 1
         private const val ACTION_STOP = "com.logioniz.simplewsproxy.action.STOP"
-
-        /** Normalize a user-entered `host:port` (or full URL) into a `ws://` URL. */
-        fun normalizeServerUrl(raw: String): String {
-            val trimmed = raw.trim()
-            if (trimmed.isEmpty()) return ""
-            return when {
-                trimmed.startsWith("ws://", ignoreCase = true) ||
-                    trimmed.startsWith("wss://", ignoreCase = true) -> trimmed
-                trimmed.startsWith("http://", ignoreCase = true) ->
-                    "ws://" + trimmed.substring("http://".length)
-                trimmed.startsWith("https://", ignoreCase = true) ->
-                    "wss://" + trimmed.substring("https://".length)
-                else -> "ws://$trimmed"
-            }
-        }
 
         fun start(context: Context) {
             val intent = Intent(context, ProxyService::class.java)

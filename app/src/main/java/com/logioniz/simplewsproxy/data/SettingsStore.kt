@@ -13,6 +13,8 @@ data class ProxySettings(
     val secretKey: String = "",
     val socksUser: String = "",
     val socksPassword: String = "",
+    /** When true, the Play button brings up a system VPN that routes all traffic. */
+    val routeAllTraffic: Boolean = false,
 )
 
 /**
@@ -27,6 +29,7 @@ object SettingsStore {
     private const val KEY_SECRET = "secret_key"
     private const val KEY_USER = "socks_user"
     private const val KEY_PASSWORD = "socks_password"
+    private const val KEY_ROUTE_ALL = "route_all_traffic"
 
     private lateinit var prefs: SharedPreferences
 
@@ -46,6 +49,7 @@ object SettingsStore {
             .putString(KEY_SECRET, settings.secretKey)
             .putString(KEY_USER, settings.socksUser)
             .putString(KEY_PASSWORD, settings.socksPassword)
+            .putBoolean(KEY_ROUTE_ALL, settings.routeAllTraffic)
             .apply()
         _settings.value = settings
     }
@@ -56,5 +60,6 @@ object SettingsStore {
         secretKey = prefs.getString(KEY_SECRET, "") ?: "",
         socksUser = prefs.getString(KEY_USER, "") ?: "",
         socksPassword = prefs.getString(KEY_PASSWORD, "") ?: "",
+        routeAllTraffic = prefs.getBoolean(KEY_ROUTE_ALL, false),
     )
 }
